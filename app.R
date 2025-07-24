@@ -1,6 +1,14 @@
 library(shiny)
 library(bslib)
-library(storytelling)
+# library(firebase)
+library(frstore)
+library(purrr)
+library(dplyr)
+
+
+
+# UI ----------------------------------------------------------------------
+
 
 ui <- page_fillable(
   theme = bs_theme(
@@ -15,7 +23,10 @@ ui <- page_fillable(
     font_scale = 1.5
   ),
   lang = "en",
-  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")#,
+    # useFirebase()
+  ),
   navset_hidden(
     id = "story_nav",
     nav_panel(
@@ -84,13 +95,15 @@ ui <- page_fillable(
               )
             )
           ),
-
           div(
             style = "text-align: center;",
             input_task_button("create", "Create My Story",
                          class = "btn-primary btn-story",
                          style = "font-size: 1.3rem; padding: 12px 40px;",
-                         label_busy = "The story fairies are hard at work ...")
+                         label_busy = "The story fairies are hard at work ..."),
+            input_task_button("saved_stories", "Gallery",
+                              class = "btn-secondary btn-story",
+                              style = "font-size: 1.3rem; padding: 12px 40px;")
           )
         )
       )
@@ -98,40 +111,48 @@ ui <- page_fillable(
 
     nav_panel(
       "story",
+      mod_story_ui("story_section")
+    ),
+    nav_panel(
+      "saved_stories",
       div(
-        class = "container",
-        style = "max-width: 800px; margin: 0 auto; padding: 20px;",
-        div(
-          class = "story-container",
-          h1(textOutput("story_title"), class = "title"),
-          div(textOutput("chapter_indicator"), class = "chapter-indicator"),
-          div(imageOutput("story_image", height = "auto"), style = "text-align: center;"),
-          div(textOutput("story_text"), class = "story-text"),
-          uiOutput("audio_player"),
-          br(),
-          br(),
-
-          div(
-            style = "display: flex; justify-content: space-between; align-items: center;",
-            div(
-              actionButton("prev_btn", "Previous",
-                           class = "btn-secondary btn-story",
-                           icon = icon("arrow-left")),
-              actionButton("new_story", "New Story",
-                           class = "btn-warning btn-story",
-                           icon = icon("book")),
-              actionButton("next_btn", "Next",
-                           class = "btn-secondary btn-story",
-                           icon = icon("arrow-right"))
-            )
-          )
-        )
+        style = "text-align: center; display: flex; justify-content: center; flex-direction: column; align-items: center; margin: 30px 0;",
+        h5("Genre", style = "margin-bottom: 15px;"),
+        selectInput(
+          "genre2",
+          NULL,
+          available_genre
+        ),
+        br(),
+        h5("Title", style = "margin-bottom: 15px;"),
+        uiOutput("available_titles"),
+        br(),
+        input_task_button("create2", "Download Story",
+                          class = "btn-primary btn-story",
+                          style = "font-size: 1.3rem; padding: 12px 40px;",
+                          label_busy = "The story fairies are hard at work ...")
       )
     )
   )
 )
 
+
+
+
+
+
+# Server ------------------------------------------------------------------
+
+
 server <- function(input, output, session) {
+
+  # f <- FirebaseUI$
+  #   new(persistence = "local")$
+  #   set_providers(
+  #     email = TRUE,
+  #     google = TRUE
+  #   )$
+  #   launch()
 
   rv <- reactiveValues(
     story = NULL,
@@ -151,76 +172,35 @@ server <- function(input, output, session) {
     rv$images <- story_data$images
     rv$speech <- story_data$speech
     # browser()
+
+    save_story(input$genre, story_data$title, story_data$story, story_data$images)
+
     nav_select("story_nav", "story")
-    removeModal()
-  })
-
-  # Chapter
-  output$chapter_indicator <- renderText({
-    if (is.null(rv$story)) return("")
-    paste("Chapter", rv$current_chapter, "of", length(rv$story))
-  })
-
-  # Title
-  output$story_title <- renderText({
-    if (is.null(rv$story)) return("Your Story Title")
-    rv$title
-  })
-
-  # Story
-  output$story_text <- renderText({
-    if (is.null(rv$story)) return("Your story appears here")
-    rv$story[rv$current_chapter]
   })
 
 
-  # Images
-  output$story_image <- renderImage({
-    if (is.null(rv$story)) return(list(src = ""))
-
-    tmpfile <- tempfile(fileext = ".png")
-    writeBin(rv$images[[rv$current_chapter]], tmpfile)
-    list(
-      src = tmpfile,
-      contentType = "image/png",
-      class = "story-image",
-      width = "100%"
-    )
-  }, deleteFile = TRUE)
+  mod_story_server("story_section", rv, session)
 
 
-  # Speech
-  output$audio_player <- renderUI({
-    if (is.null(rv$speech)) return(NULL)
+  observeEvent(input$saved_stories, {
+    nav_select("story_nav", "saved_stories")
+  })
 
-    base64_audio <- rv$speech[[rv$current_chapter]]
-    data_uri <- paste0("data:audio/mp3;base64,", base64_audio)
 
-    tags$audio(
-      controls = NA,
-      src = data_uri,
-      type = "audio/mp3",
-      style = "width: 100%; margin-top: 20px;"
+  output$available_titles <- renderUI({
+    titles <- all_genre_title |>
+      filter(genre == input$genre2) |>
+      pull(title)
+    selectInput(
+      "title",
+      NULL,
+      titles
     )
   })
 
+  # rv2 <- reactive(get_story_from_frstore(input$genre2, input$title))
 
-  # Navigation
-  observeEvent(input$next_btn, {
-    if (!is.null(rv$story) && rv$current_chapter < length(rv$story)) {
-      rv$current_chapter <- rv$current_chapter + 1
-    }
-  })
 
-  observeEvent(input$prev_btn, {
-    if (!is.null(rv$story) && rv$current_chapter > 1) {
-      rv$current_chapter <- rv$current_chapter - 1
-    }
-  })
-
-  observeEvent(input$new_story, {
-    nav_select("story_nav", "home")
-  })
 
 
 }

@@ -1,6 +1,7 @@
 library(shiny)
 library(bslib)
 # library(firebase)
+library(firebase.auth.rest)
 library(frstore)
 library(purrr)
 library(dplyr)
@@ -118,11 +119,7 @@ ui <- page_fillable(
       div(
         style = "text-align: center; display: flex; justify-content: center; flex-direction: column; align-items: center; margin: 30px 0;",
         h5("Genre", style = "margin-bottom: 15px;"),
-        selectInput(
-          "genre2",
-          NULL,
-          available_genre
-        ),
+        uiOutput("available_genre"),
         br(),
         h5("Title", style = "margin-bottom: 15px;"),
         uiOutput("available_titles"),
@@ -130,7 +127,9 @@ ui <- page_fillable(
         input_task_button("create2", "Download Story",
                           class = "btn-primary btn-story",
                           style = "font-size: 1.3rem; padding: 12px 40px;",
-                          label_busy = "The story fairies are hard at work ...")
+                          label_busy = "The story fairies are hard at work ..."),
+        br(),
+        mod_story_ui("downloaded_story")
       )
     )
   )
@@ -154,12 +153,15 @@ server <- function(input, output, session) {
   #   )$
   #   launch()
 
+  admin <- reactive(sign_in(Sys.getenv("EMAIL"), Sys.getenv("PASS")))
+
   rv <- reactiveValues(
     story = NULL,
     title = NULL,
     images = NULL,
     speech = NULL,
-    current_chapter = 1
+    current_chapter = 1,
+    image_cache = list()
   )
 
   # Click the button to create experience
@@ -173,7 +175,7 @@ server <- function(input, output, session) {
     rv$speech <- story_data$speech
     # browser()
 
-    save_story(input$genre, story_data$title, story_data$story, story_data$images)
+    save_story(input$genre, story_data$title, story_data$story, story_data$images, admin()$idToken)
 
     nav_select("story_nav", "story")
   })
@@ -187,8 +189,40 @@ server <- function(input, output, session) {
   })
 
 
+
+
+
+  # Get saved stories -------------------------------------
+  all_genre_title <- reactive({
+    get_genre_title <- frstore_get(
+        "story",
+        admin()$idToken,
+        fields = c("genre", "title")
+      ) |>
+        purrr::pluck("documents")
+
+    purrr::map_dfr(get_genre_title, \(x){
+      fields <- x$fields
+      data.frame(
+        genre = fields$genre$stringValue,
+        title = fields$title$stringValue
+      )
+    })
+  })
+
+  output$available_genre <- renderUI({
+    req(all_genre_title())
+    selectInput(
+      "genre2",
+      NULL,
+      unique(all_genre_title()$genre)
+    )
+  })
+
+
   output$available_titles <- renderUI({
-    titles <- all_genre_title |>
+    req(all_genre_title(), input$genre2)
+    titles <- all_genre_title() |>
       filter(genre == input$genre2) |>
       pull(title)
     selectInput(
@@ -198,9 +232,24 @@ server <- function(input, output, session) {
     )
   })
 
-  # rv2 <- reactive(get_story_from_frstore(input$genre2, input$title))
+  rv2 <- reactiveValues(
+    story = NULL,
+    title = NULL,
+    images = NULL,
+    speech = NULL,
+    current_chapter = 1,
+    image_cache = list()
+  )
 
+  observeEvent(input$create2, {
+    downloaded_story <- get_story_from_frstore(input$genre2, input$title, admin()$idToken)
+    rv2$story <- downloaded_story$story
+    rv2$title <- input$title
+    rv2$images <- downloaded_story$images
+    rv2$speech <- NULL
 
+    mod_story_server("downloaded_story", rv2, session)
+  }, ignoreInit = TRUE)
 
 
 }

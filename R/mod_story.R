@@ -7,7 +7,7 @@ mod_story_ui <- function(id) {
       class = "story-container",
       h1(textOutput(ns("story_title")), class = "title"),
       div(textOutput(ns("chapter_indicator")), class = "chapter-indicator"),
-      div(imageOutput(ns("story_image"), height = "auto"), style = "text-align: center;"),
+      div(imageOutput(ns("story_image"), height = NULL), style = "text-align: center; max-width: 100%; height: auto;"),
       div(textOutput(ns("story_text")), class = "story-text"),
       uiOutput(ns("audio_player")),
       br(),
@@ -59,15 +59,36 @@ mod_story_server <- function(id, rv, main_session) {
       output$story_image <- renderImage({
         if (is.null(rv$story)) return(list(src = ""))
 
+        browser()
+
+        chapter <- rv$current_chapter
+        if (length(rv$image_cache) > 0) {
+          return(list(
+            src = rv$image_cache[[chapter]],
+            contentType = "image/png",
+            class = "story-image"#,
+            # width = "100%"
+          ))
+        }
+
+        img <- rv$images[[chapter]]
         tmpfile <- tempfile(fileext = ".png")
-        writeBin(rv$images[[rv$current_chapter]], tmpfile)
+
+        if (length(img) == 1) {
+          download.file(img, tmpfile, mode = "wb")
+        } else {
+          writeBin(img, tmpfile)
+        }
+
+        rv$image_cache[[chapter]] <- tmpfile
+
         list(
           src = tmpfile,
           contentType = "image/png",
-          class = "story-image",
-          width = "100%"
+          class = "story-image"#,
+          # width = "100%"
         )
-      }, deleteFile = TRUE)
+      }, deleteFile = FALSE)
 
 
       # Speech

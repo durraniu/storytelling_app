@@ -33,7 +33,7 @@ create_experience <- function(user_prompt,
 }
 
 
-admin <- sign_in(Sys.getenv("EMAIL"), Sys.getenv("PASS"))
+
 
 
 random_id <- function(length = 20) {
@@ -50,14 +50,14 @@ upload_image <- function(img){
   uploaded_img$link
 }
 
-save_story <- function(genre, title, story, all_images){
+save_story <- function(genre, title, story, all_images, id_token){
   # upload images
   img_urls <- purrr::map_chr(all_images, upload_image)
 
   # Save to database
   frstore_create_document(
     paste0("story/", random_id()),
-    admin$idToken,
+    id_token,
     list(
       fields = list(
         genre = list(stringValue = genre),
@@ -84,32 +84,16 @@ save_story <- function(genre, title, story, all_images){
 
 
 
-# Get saved stories' genre and title
-get_genre_title <- frstore_get(
-  "story",
-  admin$idToken,
-  fields = c("genre", "title")
-) |>
-  purrr::pluck("documents")
 
-all_genre_title <- purrr::map_dfr(get_genre_title, \(x){
-  fields <- x$fields
-  data.frame(
-    genre = fields$genre$stringValue,
-    title = fields$title$stringValue
-  )
-})
-
-available_genre <- unique(all_genre_title$genre)
 
 
 
 
 # Function for getting a single story from Firestore when genre and title are specified
-get_story_from_frstore <- function(genre, title){
+get_story_from_frstore <- function(genre, title, id_token){
   story_from_frstore <- frstore_run_query(
     "story",
-    admin$idToken,
+    id_token,
     filters = list(
       list(type = "fieldFilter", field = "genre", op = "EQUAL",
            value_type = "stringValue", value = genre),
@@ -123,7 +107,7 @@ get_story_from_frstore <- function(genre, title){
   list(
     title = fields$title$stringValue,
     story = sapply(fields$story$arrayValue$values, function(x) x$stringValue),
-    img_urls = lapply(fields$img_urls$arrayValue$values, `[[`, "stringValue")
+    images = lapply(fields$img_urls$arrayValue$values, `[[`, "stringValue")
   )
 }
 

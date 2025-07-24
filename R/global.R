@@ -19,7 +19,7 @@ create_experience <- function(user_prompt,
   all_images <- generate_images(image_prompts, style)
 
   if (narrate){
-    audios <- generate_audio(story$story, model = "cloudflare")
+    audios <- generate_audio(story$story, model = "google")
   } else {
     audios <- NULL
   }
@@ -80,14 +80,6 @@ save_story <- function(genre, title, story, all_images, id_token){
     )
   )
 }
-
-
-
-
-
-
-
-
 
 # Function for getting a single story from Firestore when genre and title are specified
 get_story_from_frstore <- function(genre, title, id_token){

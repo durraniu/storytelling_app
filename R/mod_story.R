@@ -38,18 +38,21 @@ mod_story_server <- function(id, rv, main_session) {
 
       # Chapter
       output$chapter_indicator <- renderText({
+        req(rv$current_chapter)
         if (is.null(rv$story)) return("")
         paste("Chapter", rv$current_chapter, "of", length(rv$story))
       })
 
       # Title
       output$story_title <- renderText({
+        req(rv$current_chapter)
         if (is.null(rv$story)) return("Your Story Title")
         rv$title
       })
 
       # Story
       output$story_text <- renderText({
+        req(rv$current_chapter)
         if (is.null(rv$story)) return("Your story appears here")
         rv$story[rv$current_chapter]
       })
@@ -57,12 +60,13 @@ mod_story_server <- function(id, rv, main_session) {
 
       # Images
       output$story_image <- renderImage({
+        req(rv$current_chapter)
         if (is.null(rv$story)) return(list(src = ""))
 
-        browser()
-
+        # browser()
         chapter <- rv$current_chapter
-        if (length(rv$image_cache) > 0) {
+
+        if (!is.null(rv$image_cache[[chapter]])) {
           return(list(
             src = rv$image_cache[[chapter]],
             contentType = "image/png",
@@ -93,6 +97,7 @@ mod_story_server <- function(id, rv, main_session) {
 
       # Speech
       output$audio_player <- renderUI({
+        req(rv$current_chapter)
         if (is.null(rv$speech)) return(NULL)
 
         base64_audio <- rv$speech[[rv$current_chapter]]

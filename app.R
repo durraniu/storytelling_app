@@ -161,7 +161,7 @@ server <- function(input, output, session) {
     images = NULL,
     speech = NULL,
     current_chapter = 1,
-    image_cache = list()
+    image_cache = vector(mode = "list", length = 8)
   )
 
   # Click the button to create experience
@@ -173,6 +173,8 @@ server <- function(input, output, session) {
     rv$title <- story_data$title
     rv$images <- story_data$images
     rv$speech <- story_data$speech
+    rv$image_cache <- vector(mode = "list", length = 8)
+    rv$current_chapter <- 1
     # browser()
 
     save_story(input$genre, story_data$title, story_data$story, story_data$images, admin()$idToken)
@@ -238,7 +240,7 @@ server <- function(input, output, session) {
     images = NULL,
     speech = NULL,
     current_chapter = 1,
-    image_cache = list()
+    image_cache = vector(mode = "list", length = 8)
   )
 
   observeEvent(input$create2, {
@@ -247,10 +249,12 @@ server <- function(input, output, session) {
     rv2$title <- input$title
     rv2$images <- downloaded_story$images
     rv2$speech <- NULL
+    rv2$image_cache <- vector(mode = "list", length = 8)
+    rv2$current_chapter <- 1
 
-    mod_story_server("downloaded_story", rv2, session)
   }, ignoreInit = TRUE)
 
+  mod_story_server("downloaded_story", rv2, session)
 
 }
 

@@ -76,7 +76,7 @@ ui <- page_fillable(
                     "genre",
                     NULL,
                     c("adventure", "horror", "scifi", "mystery", "thriller", "fantasy", "comedy",
-                      "drama", "detective", "satire", "supernatural", "romance", "western"),
+                      "drama", "detective", "satire", "supernatural", "western"),
                     selected = "adventure"
                   )
                 ),

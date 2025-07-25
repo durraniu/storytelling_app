@@ -13,6 +13,14 @@ This is a shiny app that uses the R packages:
 
 ## How to use the app?
 
+### Use the deployed app
+
+The app is deployed
+[here](https://01983eb1-571e-c412-ea19-65f74e04956d.share.connect.posit.cloud/).
+If the link does not work, run locally as described below.
+
+### Run locally
+
 This app is not deployed anywhere. Follow these steps to run it locally:
 
 1.  Clone this repo  

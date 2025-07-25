@@ -21,7 +21,7 @@ If the link does not work, run locally as described below.
 
 ### Run locally
 
-This app is not deployed anywhere. Follow these steps to run it locally:
+Follow these steps to run the app locally:
 
 1.  Clone this repo  
 2.  Go to [Firebase website](https://firebase.google.com/) and click “Go

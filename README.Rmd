@@ -25,7 +25,7 @@ The app is deployed [here](https://01983eb1-571e-c412-ea19-65f74e04956d.share.co
 
 ### Run locally
 
-This app is not deployed anywhere. Follow these steps to run it locally:  
+Follow these steps to run the app locally:  
 
 1. Clone this repo  
 2. Go to [Firebase website](https://firebase.google.com/) and click "Go to console" at the top-right. Log in with your google account  
